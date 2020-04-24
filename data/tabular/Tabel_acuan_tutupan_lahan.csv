@@ -1,24 +1,24 @@
-ID,Tipe_tutupan_lahan
-1,Hutan lahan kering primer
-2,Hutan lahan kering sekunder / bekas tebangan
-3,Hutan rawa primer
-4,Hutan rawa sekunder
-5,Hutan mangrove primer
-6,Hutan mangrove sekunder
-7,Hutan tanaman
-8,Perkebunan
-9,Semak belukar
-10,Semak belukar rawa
-11,Savanna / Padang rumput
-12,Pertanian lahan kering
-13,Pertanian lahan kering  campur semak / kebun campur
-14,Sawah
-15,Tambak
-16,Pemukiman
-17,Transmigrasi
-18,Lahan terbuka
-19,Pertambangan
-20,Tubuh air
-21,Rawa
-22,Awan
-23,Bandara
+ID,Tipe_tutupan_lahan,Kelas
+1,Hutan lahan kering primer,Undisturbed forest
+2,Hutan lahan kering sekunder / bekas tebangan,Logged-over forest
+3,Hutan rawa primer,Undisturbed forest
+4,Hutan rawa sekunder,Logged-over forest
+5,Hutan mangrove primer,Undisturbed forest
+6,Hutan mangrove sekunder,Logged-over forest
+7,Hutan tanaman,Monoculture tree-based plantation
+8,Perkebunan,Mixed tree-based plantation
+9,Semak belukar,"Shrub, grass, and cleared land"
+10,Semak belukar rawa,"Shrub, grass, and cleared land"
+11,Savanna / Padang rumput,"Shrub, grass, and cleared land"
+12,Pertanian lahan kering,Agriculture/annual crop
+13,Pertanian lahan kering  campur semak / kebun campur,Agriculture/annual crop
+14,Sawah,Agriculture/annual crop
+15,Tambak,Others
+16,Pemukiman,Settlement and built-up area
+17,Transmigrasi,Others
+18,Lahan terbuka,"Shrub, grass, and cleared land"
+19,Pertambangan,Others
+20,Tubuh air,Others
+21,Rawa,Others
+22,Awan,Others
+23,Bandara,Others
