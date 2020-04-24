@@ -1,6 +1,7 @@
 # QUES-C - AKSARA version
 Quantification of Environmental Services (QUES) - Carbon through AKSARA
 
+## Usage
 ```
 Usage: run.R [options]
 
@@ -15,13 +16,13 @@ Options:
         -i CHARACTER, --landcover1=CHARACTER
                 initial land-cover
 
-        -b CHARACTER, --year1=CHARACTER
+        -b CHARACTER, --year1=NUMERIC
                 initial period
 
         -f CHARACTER, --landcover2=CHARACTER
                 final land-cover
 
-        -e CHARACTER, --year2=CHARACTER
+        -e CHARACTER, --year2=NUMERIC
                 final period
 
         -u CHARACTER, --landcover_table=CHARACTER
@@ -47,4 +48,21 @@ Options:
 
         -o CHARACTER, --output=CHARACTER
                 output file name [default=change_map.tif]
+```
+
+## Example
+```
+Rscript run.R 
+  -d data/raster_ha/Jawa_Barat/Admin_jabar.tif
+  -i data/raster_ha/Jawa_Barat/PL00_jabar.tif
+  -b 2000
+  -f data/raster_ha/Jawa_Barat/PL00_jabar.tif
+  -e 2003
+  -u data/tabular/Tabel_acuan_tutupan_lahan.csv
+  -z data/raster_ha/Jawa_Barat/Fungsikawasan_jabar.tif
+  -k data/tabular/Tabel_acuan_fungsi_kawasan.csv
+  -c data/tabular/cstock.csv
+  -p data/raster_ha/Jawa_Barat/Peat_jabar.tif
+  -x data/tabular/Faktor_emisi_perubahan_gambut.csv
+  -h data/raster_ha/Jawa_Barat/Burn18_jabar.tif
 ```
