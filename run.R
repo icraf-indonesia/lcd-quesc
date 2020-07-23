@@ -11,18 +11,18 @@
 ##                                                                    #
 #######################################################################
 
-# "c:\Program Files\R\R-3.6.3\bin\Rscript.exe" --vanila run.R -d data/raster_ha/Jawa_Barat/Admin_jabar.tif 
-# -i data/raster_ha/Jawa_Barat/PL00_jabar.tif 
-# -b 2000
-# -f data/raster_ha/Jawa_Barat/PL03_jabar.tif
-# -e 2003
+# "c:\Program Files\R\R-3.6.3\bin\Rscript.exe" --vanila run.R -d data/raster/Indonesia/adm_peat.tif
+# -i data/raster/Indonesia/PL_2006.tif
+# -b 2006
+# -f data/raster/Indonesia/PL_2009.tif
+# -e 2009
 # -u data/tabular/Tabel_acuan_tutupan_lahan.csv
-# -z data/raster_ha/Jawa_Barat/Fungsikawasan_jabar.tif
+# -z data/raster/Indonesia/Fungsi_kaw.tif
 # -k data/tabular/Tabel_acuan_fungsi_kawasan.csv
 # -c data/tabular/cstock.csv
 # -p data/raster_ha/Jawa_Barat/Peat_jabar.tif
-# -x data/tabular/Faktor_emisi_perubahan_gambut.csv
-# -h data/raster_ha/Jawa_Barat/Burn18_jabar.tif
+# -x data/raster/Indonesia/Peat.tif
+# -h data/raster/Indonesia/Burn18.tif
 
 # libraries with no duplicates====
 library(optparse)
@@ -172,8 +172,8 @@ lookup_z<-inZoneTable
 lookup_lc<-inLandCoverClass
 lookup_lc<-lookup_lc[,1:2]
 colnames(lookup_lc)<-c("ID", "CLASS")
-lookup_z<-inZoneTable
-colnames(lookup_z)<-c("ID_Z", "COUNT", "Zone")
+lookup_z<-inZoneTable[,c(1,3)]
+colnames(lookup_z)<-c("ID_Z", "Zone")
 
 nLandCoverId<-nrow(lookup_lc)
 nPlanningUnitId<-nrow(lookup_z)
@@ -236,7 +236,7 @@ secForest_ids <- forest_ids %>% setdiff(primaryForest_ids)
 ref <- ref*10^6
 
 # retrieve the changemap
-d_ti <- finalYear-initialYear # delta year
+deltaYear <- finalYear-initialYear # delta year
 # combine with admin data
 chg_map <- ref+R
 # retrieve freq
@@ -282,34 +282,45 @@ freq_chgmap[freq_chgmap$Em_co2Eq < 0, "Seq"] <- -1* freq_chgmap[freq_chgmap$Em_c
 freq_chgmap[freq_chgmap$Seq > 0, "Em_co2Eq"] <- 0 # correcting negative emission
 
 freq_chgmap <- merge(freq_chgmap, lookup_z, by = "ID_Z", all.x =TRUE)
+
+if("Peat" %in% names(admin_dbf)){
+  for(w in 1:2){
+    em_peat <- inPeatEmissionFactor[, c(1, 3)]
+    em_peat[, 2] <- em_peat[, 2]*deltaYear/2
+    names(em_peat)[1] <-paste0("ID_T", w)
+    names(em_peat)[2] <- paste0("EmPeat_", w)
+    freq_chgmap <- merge(freq_chgmap, em_peat, by= paste0("ID_T", w), all.x = TRUE)
+  }
+  peat_idadm <- admin_dbf[,c(1,3,4)] 
+  colnames(peat_idadm) <- c("IDADM", "Admin", "Peat")
+  # correction for peat_em which falls in non-peat planning unit (*0)
+  freq_chgmap[which(!freq_chgmap$IDADM %in% peat_idadm$IDADM), c("EmPeat_1", "EmPeat_2")] <- freq_chgmap[which(!freq_chgmap$IDADM %in% peat_idadm$IDADM), c("EmPeat_1", "EmPeat_2")]*0
+  # calculate total peat_em
+  freq_chgmap[, c("EmPeat_1", "EmPeat_2")] <- freq_chgmap[, c("EmPeat_1", "EmPeat_2")]*freq_chgmap[, "count"]*res(ref)[1]*res(ref)[2]*(111319.9^2)/10000 # conversion factor to hectare
+  freq_chgmap$EmPeatTot <- freq_chgmap$EmPeat_1 + freq_chgmap$EmPeat_2
+  freq_chgmap$EmTOT <- freq_chgmap$Em_co2Eq + freq_chgmap$EmPeatTot
+} else {
+  freq_chgmap$EmTOT <- freq_chgmap$Em_co2Eq
+}
 # add period annotation
+# Summary Table====
 freq_chgmap$PERIOD <- paste0(initialYear, "-", finalYear)
-# Mapping====
-# rec_table <- freq_chgmap[, c("value", "Em_co2Eq", "Seq", "count", "DegDef", "EmPeatTot")]
-rec_table <- freq_chgmap[, c("value", "Em_co2Eq", "Seq", "count", "DegDef")]
-# rec_table$EmTOT <- rec_table$Em_co2Eq + rec_table$EmPeatTot
-rec_table$Em_px <- rec_table$EmTOT/rec_table$count
-rec_table$Seq_px <- rec_table$Seq/rec_table$count
-
-# peat_puID contains numbers which stand for id of pu containing peat
-# store at master table, in .csv, rbind with previous runs
-ts=1
-if(ts == 1) carb_compile <- freq_chgmap else carb_compile <- data.frame(rbind(carb_compile, freq_chgmap), stringsAsFactors = FALSE)
-# Summarize calculation result following the template: Period; Gross Em; Seq; Nett abg em; peat em; Total em. Store as .csv
-if(ts == 1) {
-  summary_table <- data.frame(PERIOD = paste0(initialYear, "-", finalYear), G_Em = sum(freq_chgmap$Em_co2Eq), Seq = sum(freq_chgmap$Seq), P_Em = sum(freq_chgmap$EmPeatTot, na.rm = TRUE), stringsAsFactors = FALSE)
-} else {
-  summary_add <- data.frame(PERIOD = paste0(initialYear, "-", finalYear), G_Em = sum(freq_chgmap$Em_co2Eq), Seq = sum(freq_chgmap$Seq), P_Em = sum(freq_chgmap$EmPeatTot, na.rm = TRUE), stringsAsFactors = FALSE)
-  summary_table <- data.frame(rbind(summary_table, summary_add), stringsAsFactors = FALSE)
-}
-# degDef_summTab ====
-if(ts == 1) {
-  degDef_summTab <- data.frame(PERIOD = paste0(initialYear, "-", finalYear), Degradation = freq_chgmap %>% filter(DegDef == 1) %>% dplyr::select(hectares) %>% pull() %>% sum(), Deforestation = freq_chgmap %>% filter(DegDef == 2) %>% dplyr::select(hectares) %>% pull() %>% sum(), stringsAsFactors = FALSE)
-} else {
-  degDef_summAdd <- data.frame(PERIOD = paste0(initialYear, "-", finalYear), Degradation = freq_chgmap %>% filter(DegDef == 1) %>% dplyr::select(hectares) %>% pull() %>% sum(), Deforestation = freq_chgmap %>% filter(DegDef == 2) %>% dplyr::select(hectares) %>% pull() %>% sum(), stringsAsFactors = FALSE)
-  degDef_summTab <- data.frame(rbind(degDef_summTab, degDef_summAdd), stringsAsFactors = FALSE)
-}
-
+filter_table <- freq_chgmap[, c("Kode", "Prov", "PERIOD", "EmTOT", "Seq", "count", "hectares", "DegDef")]
+filter_table$Deforestasi<-NA
+filter_table$Degradasi<-NA
+filter_table <- within(filter_table, {Degradasi<-ifelse(DegDef==1, hectares, Degradasi)})
+filter_table <- within(filter_table, {Deforestasi<-ifelse(DegDef==2, hectares, Deforestasi)})
+prov_def<-aggregate(Deforestasi~Kode+Prov,data=filter_table,FUN=sum)
+prov_deg<-aggregate(Degradasi~Kode+Prov,data=filter_table,FUN=sum)
+prov_em<-aggregate(EmTOT~Kode+Prov,data=filter_table,FUN=sum)
+prov_seq<-aggregate(Seq~Kode+Prov,data=filter_table,FUN=sum)
+summary_table <- merge(prov_em, prov_seq, by=c("Kode", "Prov"), all.x=T)
+summary_table <- merge(summary_table, prov_def, by=c("Kode", "Prov"), all.x=T)
+summary_table <- merge(summary_table, prov_deg, by=c("Kode", "Prov"), all.x=T)
+summary_table <- replace(summary_table, is.na(summary_table), 0)
+summary_table$TAHUN <- paste0(initialYear, "-", finalYear)
+colnames(summary_table) <- c("ID_PROV", "PROV", "EMISI", "SEKUESTRASI", "DEFORESTASI", "DEGRADASI", "TAHUN")
+write.table(summary_table, args$output, quote=FALSE, row.names=FALSE, sep=",")  
 
 #=Create individual table for each landuse map
 # set area and classified land use/cover for first landcover and second
