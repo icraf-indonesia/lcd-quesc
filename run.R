@@ -20,8 +20,8 @@
 # -z data/raster/Indonesia/Fungsi_kaw.tif
 # -k data/tabular/Tabel_acuan_fungsi_kawasan.csv
 # -c data/tabular/cstock.csv
-# -p data/raster_ha/Jawa_Barat/Peat_jabar.tif
-# -x data/raster/Indonesia/Peat.tif
+# -p data/raster/Indonesia/Peat.tif
+# -x data/tabular/Faktor_emisi_perubahan_gambut.csv
 # -h data/raster/Indonesia/Burn18.tif
 
 # libraries with no duplicates====
@@ -41,7 +41,7 @@ option_list = list(
   make_option(c("-p", "--peat"), type="character", default=NULL, help="peat", metavar="character"), 
   make_option(c("-x", "--peat_table"), type="character", default=NULL, help="peat class", metavar="character"), 
   make_option(c("-h", "--burn"), type="character", default=NULL, help="burn", metavar="character"), 
-  make_option(c("-o", "--output"), type="character", default="change_map.tif", help="output file name [default=%default]", metavar="character") 
+  make_option(c("-o", "--output"), type="character", default="summary.csv", help="output file name [default=%default]", metavar="character") 
 )
 
 opt_parser = OptionParser(option_list=option_list, add_help_option = FALSE)
