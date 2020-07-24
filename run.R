@@ -318,8 +318,9 @@ summary_table <- merge(prov_em, prov_seq, by=c("Kode", "Prov"), all.x=T)
 summary_table <- merge(summary_table, prov_def, by=c("Kode", "Prov"), all.x=T)
 summary_table <- merge(summary_table, prov_deg, by=c("Kode", "Prov"), all.x=T)
 summary_table <- replace(summary_table, is.na(summary_table), 0)
-summary_table$TAHUN <- paste0(initialYear, "-", finalYear)
-colnames(summary_table) <- c("ID_PROV", "PROV", "EMISI", "SEKUESTRASI", "DEFORESTASI", "DEGRADASI", "TAHUN")
+summary_table$tahun_periode_awal <- initialYear
+summary_table$tahun_periode_akhir <- finalYear
+colnames(summary_table) <- c("id_prov", "prov", "emisi", "sekuestrasi", "deforestasi", "degradasi", "tahun_periode_awal", "tahun_periode_akhir")
 write.table(summary_table, args$output, quote=FALSE, row.names=FALSE, sep=",")  
 
 #=Create individual table for each landuse map
