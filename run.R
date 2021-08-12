@@ -47,10 +47,8 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list, add_help_option = FALSE)
 args = parse_args(opt_parser)
 
+peat_condition <- TRUE
 if(is.null(args$admin)){
-  print_help(opt_parser)
-  stop("Please insert an admininistrative boundary", call.=FALSE)
-} else if(is.null(args$admin)){
   print_help(opt_parser)
   stop("Please insert an admininistrative boundary", call.=FALSE)
 } else if(is.null(args$landcover1)){
@@ -77,6 +75,8 @@ if(is.null(args$admin)){
 } else if(is.null(args$carbon_stock)){
   print_help(opt_parser)
   stop("Please insert a carbon stock lookup table", call.=FALSE)  
+} else if(is.null(args$peat)){
+  peat_condition <- FALSE
 } 
 
 
@@ -150,7 +150,6 @@ names(ref)<-"Administrative maps"
 # Ref.ymax<-ymax(ref)
 
 inCarbonStock<-read.table(args$carbon_stock, header = TRUE, sep = ",")
-inPeatEmissionFactor<-read.table(args$peat_table, header = TRUE, sep = ",")
 inZoneClass<-read.table(args$zone_table, header = TRUE, sep = ",")
 inLandCoverClass<-read.table(args$landcover_table, header = TRUE, sep = ",")
 initialYear<-args$year1
@@ -158,8 +157,36 @@ finalYear<-args$year2
 raster_category(data=args$landcover1, lookup_class = inLandCoverClass, name = "inLandCover1")
 raster_category(data=args$landcover2, lookup_class = inLandCoverClass, name = "inLandCover2")
 raster_category(data=args$zone, lookup_class = inZoneClass, name = "inZone", type = "pu")
-inPeat<-raster(args$peat)
 inBurn<-raster(args$burn)
+if(peat_condition){
+  inPeatEmissionFactor<-read.table(args$peat_table, header = TRUE, sep = ",")
+  inPeat<-raster(args$peat)
+  inPeat<-spatial_sync_raster(inPeat, ref, method = 'ngb')
+  inPeat<-inPeat*100
+  
+  # update admin code
+  refPeat <- ref + inPeat
+  refPeatDf <- as.data.frame(freq(refPeat))
+  refPeatDf <- na.omit(refPeatDf)
+  refPeatDf$IDADMP <- 1:nrow(refPeatDf)
+  
+  refPeatDf$IDADM <- refPeatDf$value %% 100
+  refPeatDf <- merge(refPeatDf, kode_admin, by = "IDADM", all.x = TRUE)
+  refPeatDf <- within(refPeatDf, {Peat<-ifelse(value>34, "Gambut", "Non Gambut")})
+  
+  kode_admin <- refPeatDf
+  kode_admin$IDADM <- kode_admin$IDADMP
+  kode_admin$value <- kode_admin$count <- kode_admin$IDADMP<- NULL
+  
+  # reclassify
+  rcl_m_id1 <- as.matrix(refPeatDf$value)
+  rcl_m_id2 <- as.matrix(refPeatDf$IDADMP)
+  rcl_m<-cbind(rcl_m_id1, rcl_m_id2)
+  # rcl_m<-rbind(rcl_m, c(0, NA))
+  refPeatRec <- reclassify(refPeat, rcl_m)
+  # refPeatRecDf <- as.data.frame(freq(refPeatRec))
+  ref <- refPeatRec
+}
 
 # planning unit
 # zone<-inZone
@@ -283,7 +310,8 @@ freq_chgmap[freq_chgmap$Seq > 0, "Em_co2Eq"] <- 0 # correcting negative emission
 
 freq_chgmap <- merge(freq_chgmap, lookup_z, by = "ID_Z", all.x =TRUE)
 
-if("Peat" %in% names(admin_dbf)){
+# calculate peat and total emission
+if(peat_condition){
   for(w in 1:2){
     em_peat <- inPeatEmissionFactor[, c(1, 3)]
     em_peat[, 2] <- em_peat[, 2]*deltaYear/2
@@ -294,7 +322,7 @@ if("Peat" %in% names(admin_dbf)){
   peat_idadm <- admin_dbf[,c(1,3,4)] 
   colnames(peat_idadm) <- c("IDADM", "Admin", "Peat")
   # correction for peat_em which falls in non-peat planning unit (*0)
-  freq_chgmap[which(!freq_chgmap$IDADM %in% peat_idadm$IDADM), c("EmPeat_1", "EmPeat_2")] <- freq_chgmap[which(!freq_chgmap$IDADM %in% peat_idadm$IDADM), c("EmPeat_1", "EmPeat_2")]*0
+  # freq_chgmap[which(!freq_chgmap$IDADM %in% peat_idadm$IDADM), c("EmPeat_1", "EmPeat_2")] <- freq_chgmap[which(!freq_chgmap$IDADM %in% peat_idadm$IDADM), c("EmPeat_1", "EmPeat_2")]*0
   # calculate total peat_em
   freq_chgmap[, c("EmPeat_1", "EmPeat_2")] <- freq_chgmap[, c("EmPeat_1", "EmPeat_2")]*freq_chgmap[, "count"]*res(ref)[1]*res(ref)[2]*(111319.9^2)/10000 # conversion factor to hectare
   freq_chgmap$EmPeatTot <- freq_chgmap$EmPeat_1 + freq_chgmap$EmPeat_2
