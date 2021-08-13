@@ -319,10 +319,10 @@ if(peat_condition){
     names(em_peat)[2] <- paste0("EmPeat_", w)
     freq_chgmap <- merge(freq_chgmap, em_peat, by= paste0("ID_T", w), all.x = TRUE)
   }
-  peat_idadm <- admin_dbf[,c(1,3,4)] 
+  peat_idadm <- subset(kode_admin, Peat=="Gambut", select=c(IDADM, Prov, Peat))
   colnames(peat_idadm) <- c("IDADM", "Admin", "Peat")
   # correction for peat_em which falls in non-peat planning unit (*0)
-  # freq_chgmap[which(!freq_chgmap$IDADM %in% peat_idadm$IDADM), c("EmPeat_1", "EmPeat_2")] <- freq_chgmap[which(!freq_chgmap$IDADM %in% peat_idadm$IDADM), c("EmPeat_1", "EmPeat_2")]*0
+  freq_chgmap[which(!freq_chgmap$IDADM %in% peat_idadm$IDADM), c("EmPeat_1", "EmPeat_2")] <- freq_chgmap[which(!freq_chgmap$IDADM %in% peat_idadm$IDADM), c("EmPeat_1", "EmPeat_2")]*0
   # calculate total peat_em
   freq_chgmap[, c("EmPeat_1", "EmPeat_2")] <- freq_chgmap[, c("EmPeat_1", "EmPeat_2")]*freq_chgmap[, "count"]*res(ref)[1]*res(ref)[2]*(111319.9^2)/10000 # conversion factor to hectare
   freq_chgmap$EmPeatTot <- freq_chgmap$EmPeat_1 + freq_chgmap$EmPeat_2
